@@ -4,7 +4,7 @@
 set -e
 
 # Common configuration
-MODEL="Qwen/Qwen3-0.6B"
+MODEL="${MODEL:-Qwen/Qwen3-0.6B}"
 
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 source "$SCRIPT_DIR/../../../common/launch_utils.sh"
@@ -32,7 +32,14 @@ print_launch_banner "Launching Disaggregated Serving (2 GPUs)" "$MODEL" "$HTTP_P
 
 # run ingress
 # dynamo.frontend accepts either --http-port flag or DYN_HTTP_PORT env var (defaults to 8000)
-python -m dynamo.frontend &
+FRONTEND_ARGS=()
+if [[ -n "${DYN_ROUTER_MODE:-}" ]]; then
+    FRONTEND_ARGS+=(--router-mode "$DYN_ROUTER_MODE")
+fi
+if [[ "${DYN_CONDITIONAL_PD:-0}" == "1" ]]; then
+    FRONTEND_ARGS+=(--conditional-pd)
+fi
+python -m dynamo.frontend "${FRONTEND_ARGS[@]}" &
 
 # --enforce-eager is added for quick deployment. for production use, need to remove this flag
 # TODO: use build_vllm_gpu_mem_args to measure VRAM instead of relying on vLLM defaults
