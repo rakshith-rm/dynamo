@@ -86,6 +86,7 @@ class FrontendConfig(RouterConfigBase, KvRouterConfigBase, AicPerfConfigBase):
     preprocess_workers: int
     tokenizer_backend: str
     trust_remote_code: bool
+    conditional_pd: bool
 
     _VALID_TOKENIZER_BACKENDS = {"default", "fastokens"}
 
@@ -248,6 +249,20 @@ class FrontendArgGroup(ArgGroup):
 
         # Router options (shared with dynamo.router)
         RouterArgGroup().add_arguments(parser)
+
+        add_negatable_bool_argument(
+            parser,
+            flag_name="--conditional-pd",
+            env_var="DYN_CONDITIONAL_PD",
+            default=False,
+            help=(
+                "Enable adaptive conditional prefill/decode routing. When set, the "
+                "PrefillRouter may bypass remote prefill and route directly to decode "
+                "for short prompts, high KV-cache hits, or when local cost is lower.\n"
+                "env var: DYN_CONDITIONAL_PD"
+            ),
+            dest="conditional_pd",
+        )
 
         # KV router options (shared with dynamo.router)
         KvRouterArgGroup().add_arguments(parser)

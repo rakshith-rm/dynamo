@@ -33,6 +33,7 @@ use crate::{
 
 mod activation;
 mod admission;
+mod conditional;
 mod query;
 
 use admission::InnerPrefillRouter;
@@ -173,6 +174,14 @@ impl
         // deactivated (all prefill workers died), route directly to the backend. Model admission
         // remains gated by the registered worker topology before the request reaches this stage.
         if self.lifecycle_state() != PrefillLifecycleState::Active {
+            return next.generate(context.map(|_| req)).await;
+        }
+
+        if let Some(reason) = conditional::should_bypass_local_prefill(
+            conditional::conditional_pd_config(),
+            conditional::extract_request_signals(&req),
+        ) {
+            conditional::record_bypass(reason);
             return next.generate(context.map(|_| req)).await;
         }
 

@@ -526,6 +526,17 @@ pub mod router {
     /// Scheduling policy for the router queue ("fcfs" or "wspt").
     pub const DYN_ROUTER_QUEUE_POLICY: &str = "DYN_ROUTER_QUEUE_POLICY";
     pub const DYN_ROUTER_POLICY_CONFIG: &str = "DYN_ROUTER_POLICY_CONFIG";
+
+    /// Enable conditional prefill/decode routing (bypass remote prefill when local is cheaper).
+    pub const DYN_CONDITIONAL_PD: &str = "DYN_CONDITIONAL_PD";
+    pub const DYN_CONDITIONAL_PD_MIN_UNCACHED_FOR_REMOTE: &str =
+        "DYN_CONDITIONAL_PD_MIN_UNCACHED_FOR_REMOTE";
+    pub const DYN_CONDITIONAL_PD_FORCE_REMOTE_ABOVE_UNCACHED: &str =
+        "DYN_CONDITIONAL_PD_FORCE_REMOTE_ABOVE_UNCACHED";
+    pub const DYN_CONDITIONAL_PD_MIN_KV_HIT_RATIO_FOR_LOCAL: &str =
+        "DYN_CONDITIONAL_PD_MIN_KV_HIT_RATIO_FOR_LOCAL";
+    pub const DYN_CONDITIONAL_PD_MAX_PREFILL_QUEUE_FOR_REMOTE: &str =
+        "DYN_CONDITIONAL_PD_MAX_PREFILL_QUEUE_FOR_REMOTE";
 }
 
 /// Request plane transport environment variables

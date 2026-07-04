@@ -52,6 +52,14 @@ logger = logging.getLogger(__name__)
 MIN_INITIAL_WORKERS_ENV = "DYN_ROUTER_MIN_INITIAL_WORKERS"
 
 
+def apply_conditional_pd_env(config: FrontendConfig) -> None:
+    """Publish conditional P/D settings for the Rust PrefillRouter."""
+    if config.conditional_pd:
+        os.environ["DYN_CONDITIONAL_PD"] = "1"
+    else:
+        os.environ.pop("DYN_CONDITIONAL_PD", None)
+
+
 def setup_engine_factory(
     config: FrontendConfig,
     vllm_flags: Namespace,
@@ -236,6 +244,7 @@ async def async_main():
         kv_router_config = None
 
     os.environ[MIN_INITIAL_WORKERS_ENV] = str(config.min_initial_workers)
+    apply_conditional_pd_env(config)
     router_config = RouterConfig(
         router_mode, kv_router_config, **config.router_kwargs()
     )

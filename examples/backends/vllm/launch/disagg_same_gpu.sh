@@ -41,6 +41,17 @@ fi
 
 source "$SCRIPT_DIR/../../../common/launch_utils.sh"
 
+# WSL2 needs pinned memory for vLLM 0.24 UVA buffers; flashinfer sampler JIT
+# often fails to compile against system nvcc (CUB FlagHeads). Opt out unless
+# the user overrides these env vars explicitly.
+if grep -qi microsoft /proc/version 2>/dev/null; then
+    export VLLM_WSL2_ENABLE_PIN_MEMORY="${VLLM_WSL2_ENABLE_PIN_MEMORY:-1}"
+    export VLLM_USE_FLASHINFER_SAMPLER="${VLLM_USE_FLASHINFER_SAMPLER:-0}"
+    VLLM_WSL_ARGS=(--no-enable-flashinfer-autotune)
+else
+    VLLM_WSL_ARGS=()
+fi
+
 # Select legacy vs unified worker entry point. `--unified` routes workers
 # through dynamo.vllm.unified_main (the Rust backend-common Worker, which
 # owns the prefill drain loop); default stays on the legacy main.
@@ -74,6 +85,7 @@ python3 -m "$WORKER_MODULE" \
   --enforce-eager \
   --disaggregation-mode decode \
   --kv-transfer-config '{"kv_connector":"NixlConnector","kv_role":"kv_both"}' \
+  "${VLLM_WSL_ARGS[@]}" \
   $GPU_MEM_ARGS \
   --max-model-len "$MAX_MODEL_LEN" &
 
@@ -94,6 +106,7 @@ python3 -m "$WORKER_MODULE" \
   --enforce-eager \
   --disaggregation-mode prefill \
   --kv-transfer-config '{"kv_connector":"NixlConnector","kv_role":"kv_both"}' \
+  "${VLLM_WSL_ARGS[@]}" \
   $GPU_MEM_ARGS \
   --max-model-len "$MAX_MODEL_LEN" \
   --kv-events-config "{\"publisher\":\"zmq\",\"topic\":\"kv-events\",\"endpoint\":\"tcp://*:${DYN_VLLM_KV_EVENT_PORT:-20081}\",\"enable_kv_cache_events\":true}" &
