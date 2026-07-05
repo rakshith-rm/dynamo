@@ -24,7 +24,28 @@ SEED="${SEED:-0}"
 BLOCK_SIZE="${BLOCK_SIZE:-64}"
 MOONCAKE_URL="${MOONCAKE_URL:-https://raw.githubusercontent.com/kvcache-ai/Mooncake/main/FAST25-release/arxiv-trace/mooncake_trace.jsonl}"
 
+ensure_model_cached() {
+    if python3 - <<'PY' 2>/dev/null; then
+import os, sys
+from huggingface_hub import snapshot_download
+model = os.environ["MODEL"]
+path = snapshot_download(model, local_files_only=True)
+print(f"Model cached: {path}")
+PY
+        return 0
+    fi
+    echo "Downloading $MODEL (once, before workers start) ..."
+    find "${HF_HOME:-$HOME/.cache/huggingface}/hub" -name "*.lock" -delete 2>/dev/null || true
+    python3 - <<'PY'
+import os
+from huggingface_hub import snapshot_download
+snapshot_download(os.environ["MODEL"])
+print("Download complete.")
+PY
+}
+
 mkdir -p "$DATA_DIR" "$RESULTS_DIR"
+ensure_model_cached
 TRACE="$DATA_DIR/mooncake_${NUM_REQUESTS}.jsonl"
 if [[ ! -f "$TRACE" ]]; then
     SRC="$DATA_DIR/mooncake_trace.jsonl"
