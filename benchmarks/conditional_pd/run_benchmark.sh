@@ -24,15 +24,17 @@ SEED="${SEED:-0}"
 BLOCK_SIZE="${BLOCK_SIZE:-64}"
 MOONCAKE_URL="${MOONCAKE_URL:-https://raw.githubusercontent.com/kvcache-ai/Mooncake/main/FAST25-release/arxiv-trace/mooncake_trace.jsonl}"
 
-# The Dynamo Rust downloader always uses ~/.cache/huggingface/hub and ignores
-# HF_HOME / HF_HUB_CACHE. Force the pre-download into that exact dir (ignoring
-# any inherited HF_HOME like /ephemeral) so the workers find the model already
-# present and neither one triggers a concurrent download that hits a lock.
-unset HF_HOME
-export HF_HUB_CACHE="$HOME/.cache/huggingface/hub"
+# The Dynamo Rust downloader hardcodes ~/.cache/huggingface/hub, but vLLM/
+# transformers honor HF_HOME (the instance ships HF_HOME=/ephemeral, which holds
+# an incomplete copy -> tokenizer crash). Pin HF_HOME so that $HF_HOME/hub is the
+# exact dir the Rust side uses; now every resolver lands on one complete copy and
+# no worker attempts a concurrent (lock-colliding) download.
+export HF_HOME="$HOME/.cache/huggingface"
+export HF_HUB_CACHE="$HF_HOME/hub"
 
 ensure_model_cached() {
     find "$HF_HUB_CACHE" -name "*.lock" -delete 2>/dev/null || true
+    find "$HF_HUB_CACHE" -name "*.incomplete" -delete 2>/dev/null || true
     if HF_HUB_CACHE="$HF_HUB_CACHE" python3 - <<'PY' 2>/dev/null; then
 import os
 from huggingface_hub import snapshot_download
