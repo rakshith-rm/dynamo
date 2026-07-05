@@ -24,18 +24,21 @@ SEED="${SEED:-0}"
 BLOCK_SIZE="${BLOCK_SIZE:-64}"
 MOONCAKE_URL="${MOONCAKE_URL:-https://raw.githubusercontent.com/kvcache-ai/Mooncake/main/FAST25-release/arxiv-trace/mooncake_trace.jsonl}"
 
+# Pin ONE HF cache dir so the pre-download and both workers agree on location.
+# Without this the pre-download can land in HF_HOME while the Dynamo workers
+# use ~/.cache/huggingface/hub, so both workers still race and hit a lock.
+export HF_HUB_CACHE="${HF_HUB_CACHE:-$HOME/.cache/huggingface/hub}"
+
 ensure_model_cached() {
+    find "$HF_HUB_CACHE" -name "*.lock" -delete 2>/dev/null || true
     if python3 - <<'PY' 2>/dev/null; then
-import os, sys
+import os
 from huggingface_hub import snapshot_download
-model = os.environ["MODEL"]
-path = snapshot_download(model, local_files_only=True)
-print(f"Model cached: {path}")
+print("Model cached:", snapshot_download(os.environ["MODEL"], local_files_only=True))
 PY
         return 0
     fi
-    echo "Downloading $MODEL (once, before workers start) ..."
-    find "${HF_HOME:-$HOME/.cache/huggingface}/hub" -name "*.lock" -delete 2>/dev/null || true
+    echo "Downloading $MODEL into $HF_HUB_CACHE (once, before workers start) ..."
     python3 - <<'PY'
 import os
 from huggingface_hub import snapshot_download
