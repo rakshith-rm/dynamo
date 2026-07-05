@@ -51,6 +51,12 @@ PY
 
 mkdir -p "$DATA_DIR" "$RESULTS_DIR"
 ensure_model_cached
+
+# Model is now fully present in HF_HUB_CACHE. Run workers offline so neither the
+# decode nor prefill worker attempts a network re-download (which is what caused
+# the two of them to fight over the same blob .lock and crash on startup).
+export HF_HUB_OFFLINE=1
+export TRANSFORMERS_OFFLINE=1
 TRACE="$DATA_DIR/mooncake_${NUM_REQUESTS}.jsonl"
 if [[ ! -f "$TRACE" ]]; then
     SRC="$DATA_DIR/mooncake_trace.jsonl"
