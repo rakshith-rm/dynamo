@@ -53,8 +53,10 @@ run_aiperf() {
 }
 
 run_arm() {
-    local name="$1" pd="$2" out="$RESULTS_DIR/$name"
-    echo "=== $name (DYN_CONDITIONAL_PD=$pd) ==="
+    local arm_name="$1"
+    local pd="$2"
+    local out="$RESULTS_DIR/$arm_name"
+    echo "=== $arm_name (DYN_CONDITIONAL_PD=$pd) ==="
     export MODEL DYN_ROUTER_MODE=kv DYN_CONDITIONAL_PD="$pd"
     bash "$DISAGG" &
     local pid=$!
